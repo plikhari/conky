@@ -33,9 +33,9 @@
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/user.h>
 
 #include <net/if.h>
@@ -101,6 +101,7 @@ static int swapmode(unsigned long *retavail, unsigned long *retfree) {
 
 #define CONVERT(v) ((quad_t)(v) * (pagesize / 1024))
 
+  std::lock_guard<std::mutex> guard(kvm_proc_mutex);
   n = kvm_getswapinfo(kd, swapary, 1, 0);
   if (n < 0 || swapary[0].ksw_total == 0) { return 0; }
 
@@ -370,7 +371,10 @@ int update_cpu_usage(void) {
   return 0;
 }
 
-void free_cpu(struct text_object *) { /* no-op */ }
+void free_cpu(struct text_object *) {
+  /* no-op
+   */
+}
 
 int update_load_average(void) {
   double v[3];
@@ -704,7 +708,8 @@ int get_entropy_poolsize(unsigned int *val) {
   return 1;
 }
 
-void print_sysctlbyname(struct text_object *obj, char *p, unsigned int p_max_size) {
+void print_sysctlbyname(struct text_object *obj, char *p,
+                        unsigned int p_max_size) {
   u_int val[3] = {0};
   char buf[256] = {""};
   size_t len = sizeof(val);
